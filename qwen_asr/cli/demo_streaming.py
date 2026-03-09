@@ -476,6 +476,17 @@ def parse_args():
     p.add_argument("--port", type=int, default=8000, help="Bind port")
     p.add_argument("--gpu-memory-utilization", type=float, default=0.8, help="vLLM GPU memory utilization")
 
+    # HTTPS args
+    p.add_argument("--ssl-certfile", default=None, help="Path to SSL certificate file for HTTPS (optional).")
+    p.add_argument("--ssl-keyfile", default=None, help="Path to SSL key file for HTTPS (optional).")
+    p.add_argument(
+        "--ssl-verify/--no-ssl-verify",
+        dest="ssl_verify",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Whether to verify SSL certificate (default: enabled).",
+    )
+
     p.add_argument("--unfixed-chunk-num", type=int, default=4)
     p.add_argument("--unfixed-token-num", type=int, default=5)
     p.add_argument("--chunk-size-sec", type=float, default=1.0)
@@ -500,8 +511,16 @@ def main():
         max_new_tokens=32,
     )
     print("Model loaded.")
-    app.run(host=args.host, port=args.port, debug=False, use_reloader=False, threaded=True)
+    
+    ssl_context = None
+    if args.ssl_certfile and args.ssl_keyfile:
+        ssl_context = (args.ssl_certfile, args.ssl_keyfile)
+        print(f"HTTPS enabled with cert={args.ssl_certfile}, key={args.ssl_keyfile}")
+    elif args.ssl_certfile or args.ssl_keyfile:
+        raise ValueError("You must provide both --ssl-certfile and --ssl-keyfile together.")
 
+    app.run(host=args.host, port=args.port, debug=False, use_reloader=False, threaded=True, ssl_context=ssl_context,)
+  
 
 if __name__ == "__main__":
     main()
